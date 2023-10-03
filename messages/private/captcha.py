@@ -1,11 +1,12 @@
 import random
 from random import randint
-from typing import Tuple
-import numpy as np
 
 from PIL import Image, ImageDraw, ImageFont
 from telegram import InlineKeyboardButton, Update, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
+
+import config
+from util import MSG_REMOVAL_PERIOD
 
 supported_emojis = ['🃏', '🎤', '🎥', '🎨', '🎩', '🎬', '🎭', '🎮', '🎯', '🎱', '🎲', '🎷', '🎸', '🎹', '🎾', '🏀', '🏆', '🏈', '🏉',
                     '🏐',
@@ -90,6 +91,10 @@ def generate_captcha():
     return res
 
 
+async def decline(context: CallbackContext):
+    await context.bot.decline_chat_join_request(config.GROUP, context.job.data)
+
+
 async def send_captcha(update: Update, context: CallbackContext):
     answer, captcha = generate_captcha()
     random.shuffle(supported_emojis)
@@ -116,9 +121,11 @@ async def send_captcha(update: Update, context: CallbackContext):
     context.user_data["captcha"] = answer
     print(answer)
 
-    await update.message.reply_photo(open(captcha, "rb"),
-                                     "Bitte löse das Captcha! Klicke dazu alle im Bild befindlichen Emojis an",
-                                     reply_markup=InlineKeyboardMarkup(keyboard))
+    await context.bot.send_photo(update.chat_join_request.from_user.id, open(captcha, "rb"),
+                                 "Bitte löse das Captcha! Klicke dazu alle im Bild befindlichen Emojis an",
+                                 reply_markup=InlineKeyboardMarkup(keyboard))
+
+    context.job_queue.run_once(decline, MSG_REMOVAL_PERIOD, update.callback_query.from_user.id)
 
 
 async def click_captcha(update: Update, context: CallbackContext):
@@ -129,7 +136,7 @@ async def click_captcha(update: Update, context: CallbackContext):
     selected_count = 0
     for x, btrow in enumerate(keynard):
         for y, btne in enumerate(btrow):
-       #     print(btne.callback_data.split("_")[2])
+            #     print(btne.callback_data.split("_")[2])
 
             if btne.callback_data.split("_")[1] == btn:
                 if btne.callback_data.split("_")[2] == "False":
@@ -143,7 +150,7 @@ async def click_captcha(update: Update, context: CallbackContext):
             if btne.callback_data.split("_")[2] == "True":
                 options.append(btne.callback_data.split("_")[1])
                 selected_count += 1
-                print("selc",selected_count)
+                print("selc", selected_count)
 
     answer_count = 0
     for em in options:
@@ -153,13 +160,10 @@ async def click_captcha(update: Update, context: CallbackContext):
 
     print(options, answer_count, selected_count)
     if answer_count == 6 and selected_count == 6:
-        print("yes")
-        await update.callback_query.message.reply_text("Captcha solved!")
+        await context.bot.send_text(update.callback_query.from_user.id,
+                                    "Bitte warte kurz. Die Admins überprüfen dein Profil.")
+        await update.callback_query.message.delete()
+
     else:
         await update.callback_query.edit_message_reply_markup(InlineKeyboardMarkup(keynard))
         await update.callback_query.answer()
-
-
-
-
-

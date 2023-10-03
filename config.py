@@ -17,5 +17,7 @@ BLACKLIST = (
     "hurensohn",
     "arschloch",
     "fick",
-    "nazi"
+    "nazi",
+    "7 flugzeugträger",
+    "ludwigshafen "
 )
