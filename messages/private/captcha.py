@@ -49,24 +49,22 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
-def generate_captcha():
+def generate_captcha(user_id: int):
     background = Image.open(f'res/img/bg_{randint(1, 4)}.jpg', )
     paste_image_list = list()
     emoji_names = list()
 
     random.shuffle(supported_emojis)
 
-    for i in range(6):
+    for i in range(4):
         emoji_names.append(supported_emojis[i])
         paste_image_list.append(supported_emojis[i])
 
     width = int(background.width / 3)
     heigth = int(background.height / 2)
 
-    position = [(width * 1 - 274 * 1, heigth * 1 - 274 * 1), (int(width * 2.2 - 274 * 2), heigth * 1 - 274 * 1),
-                (int(width * 3.4 - 274 * 3), heigth * 1 - 274 * 1),
-                (width * 1 - 274 * 1, heigth * 2 - 274 * 2), (width * 2 - 274 * 2, int(heigth * 2.2 - 274 * 2)),
-                (width * 3 - 274 * 3, heigth * 2 - 274 * 2), ]
+    position = [(width * 1 - 274 * 1, heigth * 1 - 274 * 1), (int(width * 3.4 - 274 * 3), heigth * 1 - 274 * 1),
+                (width * 1 - 274 * 1, heigth * 2 - 274 * 2), (width * 2 - 274 * 2, int(heigth * 2.2 - 274 * 2))]
     print(position)
 
     draw = ImageDraw.Draw(background)
@@ -81,8 +79,7 @@ def generate_captcha():
                                                expand=True, fillcolor=(0, 0, 0, 0), resample=Image.BICUBIC)
         background.paste(rotated_text_layer, position[i], rotated_text_layer)
 
-    # maybe use different filename per user
-    emoji_captcha_path = f"captcha.png"
+    emoji_captcha_path = f"captcha_{user_id}.png"
 
     background.save(emoji_captcha_path, "PNG", quality=100)
     res = emoji_names, emoji_captcha_path
@@ -92,16 +89,16 @@ def generate_captcha():
 
 
 async def decline(context: CallbackContext):
-    await context.bot.decline_chat_join_request(config.GROUP, context.job.data)
+    await context.bot.decline_chat_join_request(config.GROUP, int(context.job.data))
 
 
 async def send_captcha(update: Update, context: CallbackContext):
-    answer, captcha = generate_captcha()
+    answer, captcha = generate_captcha(update.chat_join_request.from_user.id)
     random.shuffle(supported_emojis)
 
     options = list(answer)
     for em in supported_emojis:
-        if len(options) == 16:
+        if len(options) == 12:
             break
         if em not in options:
             options.append(em)
@@ -159,10 +156,12 @@ async def click_captcha(update: Update, context: CallbackContext):
             answer_count += 1
 
     print(options, answer_count, selected_count)
-    if answer_count == 6 and selected_count == 6:
-        await context.bot.send_text(update.callback_query.from_user.id,
-                                    "Bitte warte kurz. Die Admins überprüfen dein Profil.")
+    if answer_count == 4 and selected_count == 4:
         await update.callback_query.message.delete()
+        await context.bot.send_message(update.callback_query.from_user.id,
+                                       "Vielen Dank für das Lösen des Captchas 😊"
+                                       "\n\nBitte warte kurz. Die Admins überprüfen dein Profil.")
+
 
     else:
         await update.callback_query.edit_message_reply_markup(InlineKeyboardMarkup(keynard))

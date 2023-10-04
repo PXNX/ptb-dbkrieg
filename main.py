@@ -9,6 +9,7 @@ from telegram.ext import Defaults, ApplicationBuilder, filters, CommandHandler, 
 
 import config
 from config import TOKEN
+from messages.bingo import bingo_field, reset_bingo, handle_bingo
 from messages.group.command import send_rules, unwarn_user, warn_user, send_maps, send_short, send_stats, send_loss
 from messages.group.text import admin, filter_text
 from messages.private.captcha import send_captcha, click_captcha
@@ -49,6 +50,14 @@ if __name__ == "__main__":
     app.add_handler(
         MessageHandler(group & filters.TEXT & filters.Regex(re.compile("|".join(config.BLACKLIST), re.IGNORECASE)),
                        filter_text))
+
+    app.add_handler(CommandHandler("bingo", bingo_field, filters.User(config.ADMINS)))
+    app.add_handler(CommandHandler("reset_bingo", reset_bingo, filters.Chat(config.ADMINS)))
+    app.add_handler(MessageHandler(
+        filters.UpdateType.MESSAGE & filters.TEXT & group
+    #    & ~filters.User(   config.ADMINS)
+        & ~filters.IS_AUTOMATIC_FORWARD & filters.UpdateType.MESSAGE,
+        handle_bingo))
 
     print("### RUN LOCAL ###")
     app.run_polling(poll_interval=1)

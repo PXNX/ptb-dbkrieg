@@ -15,7 +15,7 @@ async def delete(context: CallbackContext):
     await context.bot.delete_message(context.job.data[CHAT_ID], context.job.data[MSG_ID])
 
 
-async def reply_html(update: Update, context: CallbackContext, file_name: str, replacement: Optional[str]):
+async def reply_html(update: Update, context: CallbackContext, file_name: str, replacement: Optional[str]=None):
     try:
         await update.message.delete()
     except TelegramError as e:
