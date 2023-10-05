@@ -13,7 +13,7 @@ from messages.bingo import bingo_field, reset_bingo, handle_bingo
 from messages.group.command import send_rules, unwarn_user, warn_user, send_maps, send_short, send_stats, send_loss
 from messages.group.text import admin, filter_text
 from messages.private.captcha import send_captcha, click_captcha
-from messages.private.command import setup
+from messages.private.command import setup, show_blacklist
 
 _LOG_FILENAME = rf"./logs/{datetime.now().strftime('%Y-%m-%d')}/{datetime.now().strftime('%H-%M-%S')}.log"
 os.makedirs(os.path.dirname(_LOG_FILENAME), exist_ok=True)
@@ -41,6 +41,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("short", send_short))
     app.add_handler(CommandHandler("stats", send_stats))
     app.add_handler(CommandHandler("setup", setup, filters.Chat(config.ADMINS)))
+    app.add_handler(CommandHandler("blacklist", show_blacklist, filters.Chat(config.ADMINS)))
 
     app.add_handler(CallbackQueryHandler(click_captcha, r"captcha_.+_.+", ))
     app.add_handler(ChatJoinRequestHandler(callback=send_captcha, chat_id=config.GROUP, block=False))

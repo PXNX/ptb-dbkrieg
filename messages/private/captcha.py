@@ -1,3 +1,4 @@
+import logging
 import random
 from random import randint
 
@@ -92,6 +93,22 @@ async def decline(context: CallbackContext):
     await context.bot.decline_chat_join_request(config.GROUP, int(context.job.data))
 
 
+def create_keyboard(context: CallbackContext):
+    keyboard = []
+    for x, row in enumerate(context.user_data["keyboard"]):
+        btn_row = []
+        for y, btn in enumerate(row):
+            if btn[1]:
+                text = "✅"
+            else:
+                text = btn[0]
+
+            btn_row.append(InlineKeyboardButton(text, callback_data=f"captcha_{x}_{y}"))
+        keyboard.append(btn_row)
+
+    return keyboard
+
+
 async def send_captcha(update: Update, context: CallbackContext):
     answer, captcha = generate_captcha(update.chat_join_request.from_user.id)
     random.shuffle(supported_emojis)
@@ -104,65 +121,47 @@ async def send_captcha(update: Update, context: CallbackContext):
             options.append(em)
     random.shuffle(options)
 
-    keyboard = []
+    state = []
     for row in chunks(options, 4):
-        row_btns = []
-
+        state_row = []
         for btn in row:
-            row_btns.append(InlineKeyboardButton(btn, callback_data=f"captcha_{btn}_{False}"))
-
-        keyboard.append(row_btns)
-
-    print(keyboard)
+            state_row.append([btn, False])
+        state.append(state_row)
 
     context.user_data["captcha"] = answer
-    print(answer)
+    context.user_data["keyboard"] = state
+    logging.info(f"answer: {answer} - keyboard: {state}")
 
     await context.bot.send_photo(update.chat_join_request.from_user.id, open(captcha, "rb"),
                                  "Bitte löse das Captcha! Klicke dazu alle im Bild befindlichen Emojis an",
-                                 reply_markup=InlineKeyboardMarkup(keyboard))
+                                 reply_markup=InlineKeyboardMarkup(create_keyboard(context)))
 
     context.job_queue.run_once(decline, MSG_REMOVAL_PERIOD, update.callback_query.from_user.id)
 
 
 async def click_captcha(update: Update, context: CallbackContext):
-    btn = update.callback_query.data.split("_")[1]
+    x, y = update.callback_query.data.split("_")[1:]
+    x = int(x)
+    y = int(y)
 
-    keynard = list(map(list, update.callback_query.message.reply_markup.inline_keyboard))
-    options = []
-    selected_count = 0
-    for x, btrow in enumerate(keynard):
-        for y, btne in enumerate(btrow):
-            #     print(btne.callback_data.split("_")[2])
+    context.user_data["keyboard"][x][y][1] = not context.user_data["keyboard"][x][y][1]
 
-            if btne.callback_data.split("_")[1] == btn:
-                if btne.callback_data.split("_")[2] == "False":
-                    keynard[x][y] = InlineKeyboardButton("✅", callback_data=f"captcha_{btn}_True")
-                    print("SET TRUE")
-                    options.append(btne.callback_data.split("_")[1])
-                    selected_count += 1
-                else:
-                    keynard[x][y] = InlineKeyboardButton(btn, callback_data=f"captcha_{btn}_False")
+    active = 0
+    correct = 0
+    for row in context.user_data["keyboard"]:
+        for btn in row:
+            if btn[1]:
+                active += 1
+                if btn[0] in context.user_data["captcha"]:
+                    correct += 1
 
-            if btne.callback_data.split("_")[2] == "True":
-                options.append(btne.callback_data.split("_")[1])
-                selected_count += 1
-                print("selc", selected_count)
-
-    answer_count = 0
-    for em in options:
-        print(em, context.user_data["captcha"])
-        if em in context.user_data["captcha"]:
-            answer_count += 1
-
-    print(options, answer_count, selected_count)
-    if answer_count == 4 and selected_count == 4:
+    logging.info(f"{update.callback_query.from_user.id} - correct: {correct} - active: {active}")
+    if correct == 4 and active == 4:
         await update.callback_query.message.delete()
         await context.bot.send_message(update.callback_query.from_user.id,
                                        "Vielen Dank für das Lösen des Captchas 😊"
                                        "\n\nBitte warte kurz. Die Admins überprüfen dein Profil.")
 
-
     else:
-        await update.callback_query.edit_message_reply_markup(InlineKeyboardMarkup(keynard))
+        await update.callback_query.edit_message_reply_markup(InlineKeyboardMarkup(create_keyboard(context)))
         await update.callback_query.answer()

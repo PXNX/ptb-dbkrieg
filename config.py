@@ -19,5 +19,7 @@ BLACKLIST = (
     "fick",
     "nazi",
     "7 flugzeugträger",
-    "ludwigshafen "
+    "ludwigshafen ",
+    "rashist",
+    "putler"
 )
