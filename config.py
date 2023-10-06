@@ -11,15 +11,13 @@ ADMINS: Final[List[int]] = json.loads(os.getenv('ADMINS'))
 GROUP: Final[int] = int(os.getenv('GROUP'))
 
 BLACKLIST = (
-    "ork",
-    "orc",
+    "or[kc]",
     "hohol",
     "hurensohn",
     "arschloch",
-    "fick",
+    "fick(en|t)",
     "nazi",
-    "7 flugzeugträger",
     "ludwigshafen ",
     "rashist",
-    "putler"
+    "putler",
 )

@@ -48,15 +48,17 @@ if __name__ == "__main__":
     #   app.add_handler(CallbackQueryHandler(unclick_captcha, r"captcha_.+_True", ))
 
     app.add_handler(MessageHandler(group & filters.Regex("^@admin"), admin))
-    app.add_handler(
-        MessageHandler(group & filters.TEXT & filters.Regex(re.compile("|".join(config.BLACKLIST), re.IGNORECASE)),
+    blacklist = r")|((^|\W)".join(config.BLACKLIST)
+    blacklist_re = re.compile(fr"((^|\W){blacklist})", re.IGNORECASE)
+
+    app.add_handler( MessageHandler(group & (filters.Regex(blacklist_re) | filters.CaptionRegex(blacklist_re)),
                        filter_text))
 
     app.add_handler(CommandHandler("bingo", bingo_field, filters.User(config.ADMINS)))
     app.add_handler(CommandHandler("reset_bingo", reset_bingo, filters.Chat(config.ADMINS)))
     app.add_handler(MessageHandler(
         filters.UpdateType.MESSAGE & filters.TEXT & group
-    #    & ~filters.User(   config.ADMINS)
+        #    & ~filters.User(   config.ADMINS)
         & ~filters.IS_AUTOMATIC_FORWARD & filters.UpdateType.MESSAGE,
         handle_bingo))
 
