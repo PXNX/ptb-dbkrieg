@@ -11,7 +11,6 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.helpers import mention_html
 
-
 load_dotenv()
 
 ENTRIES = {
@@ -171,14 +170,14 @@ def generate_bingo_field():
 
 
 def check_win(fields: List[List[Dict[str, Union[str, bool]]]]):
-    # horizontal condition
-    for row in fields:
-        if all(item["checked"] for item in row):
-            return True
-
     # vertical condition
     for column in zip(*fields):
         if all(item["checked"] for item in column):
+            return True
+
+    # horizontal condition
+    for row in fields:
+        if all(item["checked"] for item in row):
             return True
 
     return False
@@ -314,8 +313,8 @@ async def handle_bingo(update: Update, context: CallbackContext):
                                                         caption=f"<b>BINGO! 🥳</b>"
                                                                 f"\n\n{mention_html(update.message.from_user.id, update.message.from_user.first_name)} hat den letzten Begriff beigetragen. Die erratenen Begriffe sind gelb eingefärbt."
                                                                 f"\n\nEine neue Runde beginnt..."
-                                                          )
-                #todo: add footer
+                                                        )
+                # todo: add footer
                 await msg.pin()
             context.bot_data["bingo"] = generate_bingo_field()
         else:
@@ -352,8 +351,8 @@ async def bingo_field(update: Update, context: CallbackContext):
                                              caption=f"<b>Donbass-Bingo</b>\n\n"
                                                      f"Wenn eine in diesem Chat gesendete Nachricht auf dem Spielfeld vorkommendende Begriffe enthält, werden diese rausgestrichen.\n\n"
                                                      f"Ist eine gesamte Zeile oder Spalte durchgestrichen, dann heißt es <b>BINGO!</b> und eine neue Runde startet.\n"
-                                                     )
-            #todo: add footer
+                                             )
+            # todo: add footer
     except FileNotFoundError as e:
         logging.info("No field yet")
 
